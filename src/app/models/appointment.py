@@ -13,12 +13,6 @@ if TYPE_CHECKING:
 
 class Appointment(Base):
     __tablename__ = "appointments"
-    __table_args__ = (
-        UniqueConstraint(
-            "doctor_id", "date", "time_start",
-            name="uq_doctor_date_timeslot",
-        ),
-    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id"), nullable=False)
