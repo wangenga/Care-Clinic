@@ -1,0 +1,8 @@
+src/app/__pycache__/
+*.pyc
+.venv/
+.env
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
