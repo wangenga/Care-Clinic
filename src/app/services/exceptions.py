@@ -42,3 +42,8 @@ class AppointmentInPastError(BookingError):
     whose original time has already passed."""
 
     status_code = 400
+
+class InvalidSlotAlignmentError(BookingError):
+    """Raised when a requested time doesn't align to a valid 30-minute slot boundary."""
+
+    status_code = 400

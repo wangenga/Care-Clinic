@@ -10,6 +10,7 @@ from app.services.exceptions import (
     AppointmentInPastError,
     AppointmentNotFoundError,
     DoctorNotAvailableError,
+    InvalidSlotAlignmentError,
     SlotAlreadyBookedError,
     SlotInPastError,
     SlotWithinBufferError,
@@ -18,6 +19,18 @@ from app.services.exceptions import (
 SLOT_DURATION_MINUTES = 30
 BOOKING_BUFFER = timedelta(hours=1)
 
+
+def _generate_slots(time_start: time, time_end: time) -> list[time]:
+    """All 30-minute slot start times that fully fit within [time_start, time_end)."""
+    slots = []
+    current = datetime.combine(date_.today(), time_start) # noqa: DTZ011 — single-timezone assumption
+    end = datetime.combine(date_.today(), time_end) # noqa: DTZ011 — single-timezone assumption
+
+    while current + timedelta(minutes=SLOT_DURATION_MINUTES) <= end:
+        slots.append(current.time())
+        current += timedelta(minutes=SLOT_DURATION_MINUTES)
+
+    return slots
 
 def _slot_end(time_start: time) -> time:
     dummy = datetime.combine(date_.today(), time_start) + timedelta( # noqa: DTZ011 — single-timezone assumption, see README
@@ -52,9 +65,16 @@ def validate_within_working_hours(
         raise DoctorNotAvailableError(
             "Doctor has no working hours set for this date."
         )
+
     if time_start < working_hours.time_start or end_time > working_hours.time_end:
         raise DoctorNotAvailableError(
             "Requested slot falls outside the doctor's working hours."
+        )
+
+    valid_slots = _generate_slots(working_hours.time_start, working_hours.time_end)
+    if time_start not in valid_slots:
+        raise InvalidSlotAlignmentError(
+            "Appointments must start on a 30-minute boundary (e.g. 09:00, 09:30)."
         )
 
 

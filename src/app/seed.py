@@ -9,27 +9,38 @@ from app.models.working_hours import WorkingHours
 def seed():
     db = SessionLocal()
     try:
-        # Avoid duplicate seeding on repeat runs
-        if db.query(Doctor).first() is not None:
-            print("Data already seeded, skipping.")
-            return
+        doctor = db.query(Doctor).first()
+        if doctor is None:
+            doctor = Doctor(name="Dr. Aisha Njoroge")
+            db.add(doctor)
+            db.flush()
+            print(f"Seeded doctor id={doctor.id}")
 
-        doctor = Doctor(name="Dr. Aisha Njoroge")
-        patient = Patient(name="John Mwangi")
-        db.add_all([doctor, patient])
-        db.flush()  # assigns IDs without committing yet
+        patient = db.query(Patient).first()
+        if patient is None:
+            patient = Patient(name="John Mwangi")
+            db.add(patient)
+            db.flush()
+            print(f"Seeded patient id={patient.id}")
 
-        working_hours = WorkingHours(
-            doctor_id=doctor.id,
-            date=date(2026, 8, 30),
-            time_start=time(9, 0),
-            time_end=time(13, 0),
-        )
-        db.add(working_hours)
+        future_date = date(2026, 8, 30)
+        if not db.query(WorkingHours).filter_by(doctor_id=doctor.id, date=future_date).first():
+            db.add(WorkingHours(
+                doctor_id=doctor.id, date=future_date,
+                time_start=time(9, 0), time_end=time(13, 0),
+            ))
+            print(f"Seeded working hours for {future_date}")
+
+        today = date.today()  # noqa: DTZ011 — single-timezone assumption, see README
+        if not db.query(WorkingHours).filter_by(doctor_id=doctor.id, date=today).first():
+            db.add(WorkingHours(
+                doctor_id=doctor.id, date=today,
+                time_start=time(0, 0), time_end=time(23, 59),
+            ))
+            print(f"Seeded working hours for today ({today}), full day")
+
         db.commit()
-
-        print(f"Seeded doctor id={doctor.id}, patient id={patient.id}")
-        print(f"Working hours: {working_hours.date} {working_hours.time_start}-{working_hours.time_end}")
+        print(f"Doctor id: {doctor.id}")
 
     finally:
         db.close()
