@@ -44,7 +44,7 @@ class AppointmentOut(BaseModel):
     time_start: time
     end_time: time
     status: str
-    cancelation_reason: str | None = None
+    cancellation_reason: str | None = None
 
 class AvailabilityOut(BaseModel):
     doctor_id: int
