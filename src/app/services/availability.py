@@ -12,9 +12,10 @@ from app.services.validation import (
 
 
 def get_available_slots(db: Session, doctor_id: int, date: date_) -> list[time]:
+    day_of_week = date.weekday()
     working_hours = (
         db.query(WorkingHours)
-        .filter(WorkingHours.doctor_id == doctor_id, WorkingHours.date == date)
+        .filter(WorkingHours.doctor_id == doctor_id, WorkingHours.day_of_week == day_of_week)
         .first()
     )
     if working_hours is None:

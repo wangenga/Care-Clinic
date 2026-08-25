@@ -22,7 +22,6 @@ Ensure smooth booking of appointments at our clinic.
 
 - Doctors cannot be added through the system; this is handled manually.
 - The one-hour booking buffer cannot be overridden by a doctor, even if the doctor is open to appointments within that window.
-- Lunch-hour scheduling is not modeled.
 - There is no authentication in this version.
 - The patient and clinic are assumed to be in the same timezone.
 
@@ -66,7 +65,7 @@ This is also the entry point for cancel and reschedule — a patient sees their 
 **WorkingHours**
 - `workingHoursID` (PK)
 - `doctorID` (FK)
-- `date`
+- `dayOfWeek` (0 = Monday ... 6 = Sunday)
 - `timeStart`
 - `timeEnd`
 
@@ -85,7 +84,7 @@ This is also the entry point for cancel and reschedule — a patient sees their 
 - A patient can have 0 or many appointments.
 - An appointment belongs to exactly 1 patient and exactly 1 doctor.
 - A doctor can have 0 or many appointments.
-- A doctor can have many working-hours records, one per date.
+- A doctor can have up to one working-hours record per day of the week (Monday–Sunday), enforced by a unique constraint on `(doctorID, dayOfWeek)`.
 - Each working-hours record belongs to exactly 1 doctor.
 
 ```mermaid
@@ -132,7 +131,7 @@ erDiagram
 1. **Doctors cannot manage their own working hours through the API.**
    Allowing edits would require handling the case where a doctor changes their hours after a patient has already booked outside the new timeframe — that needs more time to implement properly, so it's deferred to v2.
 
-2. **Chose a unique DB constraint on `(doctorID, date, timeStart)` over transaction-based row locking for booking validation.**
+2. **Chose a unique DB constraint on `Appointment` table's `(doctorID, date, timeStart)` over transaction-based row locking for booking validation.**
    A separate table of precomputed available slots would introduce write contention and risk deadlocks under high traffic as the clinic grows. This means cancellation and rescheduling must be handled carefully: the constraint is implemented as a partial unique index (unique only where `status = 'booked'`), so a slot becomes bookable again as soon as its appointment is cancelled or rescheduled.
 
 3. **Cancelled and rescheduled appointments free up their slot.** Their rows remain in the `Appointment` table for history, but the slot itself is shown as available again.
@@ -141,12 +140,18 @@ erDiagram
 
 5. **Slots within the next hour are filtered out at generation time**, rather than being shown and then rejected at booking time. This keeps the experience smoother — patients only ever see slots they can actually book.
 
-1. **Cancelling and rescheduing of past appointments.**
+6. **Cancelling and rescheduing of past appointments.**
    Without this check, a patient could reschedule or cancel an appointment that already happened — which doesn't reflect reality and could be used to manipulate historical booking data.I chose not to introduce a status "completed" that would require deciding who or what transitions an appointment out of booked once its time passes. Rather I choose a simple fix, checking the appointment's own date/time against "now" directly inside cancel and reschedule validation — covers the actual risk
+
+7. **Working hours are modeled per day of the week (`dayOfWeek`, 0–6), not per specific date.** 
+    The original per-date design meant a doctor's availability would only exist as far into the future as someone manually seeded rows — directly at odds with "we're starting small but want to grow." A recurring weekly schedule is seeded once per doctor and holds indefinitely. The trade-off: this version can't express one-off exceptions (a public holiday, a doctor's single sick day) — that requires a separate overrides/exceptions table layered on top, noted under V2 rather than built now.
+8. **Malformed date input returns a specific, actionable error message**
+    (e.g. "Invalid date format. Expected YYYY-MM-DD.") rather than Pydantic's default generic parsing error. This is handled via a global `RequestValidationError` handler that rewrites messages for `date`-typed fields, so the fix applies consistently across the availability query parameter and both appointment request bodies rather than being patched endpoint-by-endpoint.
 
 ## V2 Improvements
 
 1. Allow doctors to make adjustments to their working hours.
 2. If a doctor changes working hours after a patient has already booked: if the doctor can still accommodate the existing appointment, keep it and shift the remaining slots; otherwise, notify the patient and prompt them to reschedule.
 3. Add an urgency column to appointments.
-4. Introduce a completed status transitioned automatically once an appointment's time passes, replacing the direct date/time checks in cancel and reschedule with a single status check.
+4. Introduce a `completed` status transitioned automatically once an appointment's time passes, replacing the direct date/time checks in cancel and reschedule with a single status check.
+5. Support one-off exceptions to a doctor's recurring weekly schedule (e.g. a public holiday or a single day off), likely via a separate date-specific overrides table that takes precedence over the weekly `WorkingHours` record when present.

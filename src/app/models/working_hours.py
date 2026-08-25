@@ -1,8 +1,7 @@
-from datetime import date as date_
 from datetime import time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Integer, Time
+from sqlalchemy import ForeignKey, Integer, Time, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -13,10 +12,13 @@ if TYPE_CHECKING:
 
 class WorkingHours(Base):
     __tablename__ = "working_hours"
+    __table_args__ = (
+        UniqueConstraint("doctor_id", "day_of_week", name="uq_doctor_day_of_week"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     doctor_id: Mapped[int] = mapped_column(ForeignKey("doctors.id"), nullable=False)
-    date: Mapped[date_] = mapped_column(Date, nullable=False)
+    day_of_week: Mapped[int] = mapped_column(Integer, nullable=False)  # Monday=0 ... Sunday=6
     time_start: Mapped[time] = mapped_column(Time, nullable=False)
     time_end: Mapped[time] = mapped_column(Time, nullable=False)
 

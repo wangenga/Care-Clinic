@@ -56,9 +56,10 @@ def validate_not_within_buffer(date: date_, time_start: time) -> None:
 def validate_within_working_hours(
     db: Session, doctor_id: int, date: date_, time_start: time, end_time: time
 ) -> None:
+    day_of_week = date.weekday()
     working_hours = (
         db.query(WorkingHours)
-        .filter(WorkingHours.doctor_id == doctor_id, WorkingHours.date == date)
+        .filter(WorkingHours.doctor_id == doctor_id, WorkingHours.day_of_week == day_of_week)
         .first()
     )
     if working_hours is None:
