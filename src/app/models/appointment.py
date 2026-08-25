@@ -2,7 +2,7 @@ from datetime import date as date_
 from datetime import time
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Date, ForeignKey, Integer, String, Time, UniqueConstraint
+from sqlalchemy import Date, ForeignKey, Integer, String, Time
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
