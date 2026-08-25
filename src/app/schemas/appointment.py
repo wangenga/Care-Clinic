@@ -9,6 +9,16 @@ class AppointmentCreate(BaseModel):
     date: date
     time_start: time
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "patient_id": 0,
+                "doctor_id": 0,
+                "date": "2026-08-30",
+                "time_start": "14:00:00",
+            }
+        }
+    )
     @field_validator("time_start")
     @classmethod
     def reject_tz_aware(cls, v: time) -> time:
@@ -25,6 +35,14 @@ class AppointmentReschedule(BaseModel):
     date: date
     time_start: time
 
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "date": "2026-08-30",
+                "time_start": "10:00:00",
+            }
+        }
+    )
     @field_validator("time_start")
     @classmethod
     def reject_tz_aware(cls, v: time) -> time:

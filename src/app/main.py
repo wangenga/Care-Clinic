@@ -2,13 +2,14 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.routers import appointments, doctors
+from app.routers import appointments, doctors, patients
 from app.services.exceptions import BookingError
 
 app = FastAPI(title="Care Clinic Booking System")
 
 app.include_router(doctors.router)
 app.include_router(appointments.router)
+app.include_router(patients.router)
 
 
 @app.exception_handler(BookingError)

@@ -70,3 +70,20 @@ def doctor_and_patient(db_session):
     db_session.commit()
 
     return {"doctor": doctor, "patient": patient, "date": test_date}
+
+@pytest.fixture()
+def two_doctors_and_patient(db_session):
+    doctor_a = Doctor(name="Dr. A")
+    doctor_b = Doctor(name="Dr. B")
+    patient = Patient(name="Test Patient")
+    db_session.add_all([doctor_a, doctor_b, patient])
+    db_session.flush()
+
+    # doctor_a works Tuesdays only; doctor_b works no days at all
+    db_session.add(WorkingHours(
+        doctor_id=doctor_a.id, day_of_week=1,  # Tuesday
+        time_start=time(9, 0), time_end=time(13, 0),
+    ))
+    db_session.commit()
+
+    return {"doctor_a": doctor_a, "doctor_b": doctor_b, "patient": patient}

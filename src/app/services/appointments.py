@@ -1,5 +1,5 @@
 from datetime import date as date_
-from datetime import time
+from datetime import datetime, time
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -77,3 +77,26 @@ def reschedule_appointment(
 
     db.refresh(appointment)
     return appointment
+
+def get_upcoming_appointments(db: Session, patient_id: int) -> list[Appointment]:
+    today = date_.today()  # noqa: DTZ011 — single-timezone assumption, see README
+    now = datetime.now()  # noqa: DTZ005 — single-timezone assumption, see README
+
+    candidates = (
+        db.query(Appointment)
+        .filter(
+            Appointment.patient_id == patient_id,
+            Appointment.status == "booked",
+            Appointment.date >= today,
+        )
+        .order_by(Appointment.date, Appointment.time_start)
+        .all()
+    )
+
+    # Exclude today's appointments whose time has already passed —
+    # the date >= today filter alone isn't enough for same-day precision.
+    return [
+        appt
+        for appt in candidates
+        if appt.date > today or datetime.combine(appt.date, appt.time_start) >= now
+    ]
