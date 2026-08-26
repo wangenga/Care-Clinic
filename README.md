@@ -155,3 +155,56 @@ erDiagram
 3. Add an urgency column to appointments.
 4. Introduce a `completed` status transitioned automatically once an appointment's time passes, replacing the direct date/time checks in cancel and reschedule with a single status check.
 5. Support one-off exceptions to a doctor's recurring weekly schedule (e.g. a public holiday or a single day off), likely via a separate date-specific overrides table that takes precedence over the weekly `WorkingHours` record when present.
+
+## Prerequisites
+ 
+- [uv](https://docs.astral.sh/uv/) (Python package/project manager)
+- [Docker](https://www.docker.com/) and Docker Compose (for local Postgres)
+- Python 3.12+ (uv will manage this automatically via `uv sync` if not already installed)
+## How to Run Locally
+ 
+1. **Clone the repo and enter the project directory:**
+```bash
+   git clone <repo-url>
+   cd Care-Clinic
+```
+ 
+2. **Start Postgres locally via Docker Compose:**
+```bash
+   docker compose up -d
+```
+   This starts a Postgres 16 container on `localhost:5432` with the credentials defined in `docker-compose.yml`.
+ 
+3. **Create a `.env` file** in the project root (see `.env.example` for the required variables):
+
+ 
+4. **Create the test database** (only needed once, for running the test suite):
+```bash
+   docker exec -it care-clinic-db-1 psql -U care_clinic -d care_clinic -c "CREATE DATABASE care_clinic_test;"
+```
+ 
+5. **Install dependencies:**
+```bash
+   uv sync
+```
+ 
+6. **Run database migrations:**
+```bash
+   uv run alembic upgrade head
+```
+ 
+7. **Seed sample data** (5 doctors with varied working hours, plus a test patients):
+```bash
+   uv run python src/app/seed.py
+```
+ 
+8. **Start the API:**
+```bash
+   uv run fastapi dev src/app/main.py
+```
+   The API will be available at `http://127.0.0.1:8000`, with interactive docs at `http://127.0.0.1:8000/docs`.
+ 
+9. **Run the test suite:**
+```bash
+   uv run pytest src/app/tests/ -v
+```
