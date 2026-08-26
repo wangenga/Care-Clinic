@@ -6,3 +6,4 @@ src/app/__pycache__/
 .pytest_cache/
 .ruff_cache/
 .coverage
+github-actions-key.json

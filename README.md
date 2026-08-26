@@ -1,7 +1,7 @@
 # Care Clinic Booking System
 
 
-**Interactive API docs:** https://care-clinic-642962786433.us-central1.run.app/docs
+**Live application:** https://care-clinic-642962786433.us-central1.run.app (redirects to the interactive Swagger docs at `/docs`)
 
 ## Goals
 
@@ -151,13 +151,7 @@ erDiagram
 8. **Malformed date input returns a specific, actionable error message**
     (e.g. "Invalid date format. Expected YYYY-MM-DD.") rather than Pydantic's default generic parsing error. This is handled via a global `RequestValidationError` handler that rewrites messages for `date`-typed fields, so the fix applies consistently across the availability query parameter and both appointment request bodies rather than being patched endpoint-by-endpoint.
 
-## V2 Improvements
 
-1. Allow doctors to make adjustments to their working hours.
-2. If a doctor changes working hours after a patient has already booked: if the doctor can still accommodate the existing appointment, keep it and shift the remaining slots; otherwise, notify the patient and prompt them to reschedule.
-3. Add an urgency column to appointments.
-4. Introduce a `completed` status transitioned automatically once an appointment's time passes, replacing the direct date/time checks in cancel and reschedule with a single status check.
-5. Support one-off exceptions to a doctor's recurring weekly schedule (e.g. a public holiday or a single day off), likely via a separate date-specific overrides table that takes precedence over the weekly `WorkingHours` record when present.
 
 ## Prerequisites
  
@@ -211,3 +205,30 @@ erDiagram
 ```bash
    uv run pytest src/app/tests/ -v
 ```
+
+# Deployment & CI/CD
+ 
+**Live application:** https://care-clinic-642962786433.us-central1.run.app (redirects to the interactive Swagger docs at `/docs`)
+ 
+Deployed on **Google Cloud Platform**:
+- **Cloud Run** — hosts the containerized FastAPI application (serverless, auto-scaling, public HTTPS endpoint).
+- **Cloud SQL (Postgres 16)** — managed database, connected to Cloud Run via the Cloud SQL Auth Proxy (Unix socket connection, no public database IP exposed).
+- Database migrations (`alembic upgrade head`) run automatically on every container startup, so the schema is always in sync with the deployed code.
+**Deployment trigger:** merging a pull request into the `main` branch. A push to `main` (which is what a merge produces) runs the pipeline's `deploy` job automatically — no manual deploy step is needed.
+ 
+### CI/CD Pipeline
+ 
+Defined in `.github/workflows/deploy.yml`, using GitHub Actions.
+ 
+- **On every pull request into `main`:** spins up a throwaway Postgres service container, installs dependencies via `uv`, runs Alembic migrations against it, runs the full pytest suite, and runs Ruff for linting. The PR cannot be merged with confidence unless all of these pass.
+- **On every merge into `main`:** after the same test job passes again, a second job builds a fresh Docker image (tagged with the commit SHA for traceability), pushes it to Google Artifact Registry, and deploys it to Cloud Run — fully automated, no manual steps.
+- The deploy job depends on (`needs:`) the test job, so a broken PR can never trigger a production deployment even if merged.
+
+
+## V2 Improvements
+
+1. Allow doctors to make adjustments to their working hours.
+2. If a doctor changes working hours after a patient has already booked: if the doctor can still accommodate the existing appointment, keep it and shift the remaining slots; otherwise, notify the patient and prompt them to reschedule.
+3. Add an urgency column to appointments.
+4. Introduce a `completed` status transitioned automatically once an appointment's time passes, replacing the direct date/time checks in cancel and reschedule with a single status check.
+5. Support one-off exceptions to a doctor's recurring weekly schedule (e.g. a public holiday or a single day off), likely via a separate date-specific overrides table that takes precedence over the weekly `WorkingHours` record when present.
