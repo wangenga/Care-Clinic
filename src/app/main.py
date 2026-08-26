@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.routers import appointments, doctors, patients
 from app.services.exceptions import BookingError
@@ -11,6 +11,9 @@ app.include_router(doctors.router)
 app.include_router(appointments.router)
 app.include_router(patients.router)
 
+@app.get("/")
+def root():
+    return RedirectResponse(url="/docs")
 
 @app.exception_handler(BookingError)
 def booking_error_handler(request: Request, exc: BookingError):

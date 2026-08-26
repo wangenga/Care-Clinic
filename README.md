@@ -1,5 +1,8 @@
 # Care Clinic Booking System
 
+
+**Interactive API docs:** https://care-clinic-642962786433.us-central1.run.app/docs
+
 ## Goals
 
 Ensure smooth booking of appointments at our clinic.
